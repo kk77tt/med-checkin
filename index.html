@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>吃药打卡</title>
+<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15171a" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="吃药打卡">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230f9d68'/><path d='M27 52l16 16 30-33' fill='none' stroke='white' stroke-width='11' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<style>
+  :root{
+    --bg:#f4f5f7;
+    --card:#ffffff;
+    --text:#1c1f23;
+    --muted:#6b7280;
+    --line:#e6e8ec;
+    --accent:#0f9d68;
+    --accent-soft:#e6f6ef;
+    --warn:#e08a1e;
+    --warn-soft:#fdf3e3;
+    --danger:#d94a4a;
+    --danger-soft:#fdeceb;
+    --shadow:0 1px 2px rgba(16,24,40,.05), 0 8px 24px rgba(16,24,40,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#15171a;
+      --card:#1e2125;
+      --text:#eceef1;
+      --muted:#9aa2ae;
+      --line:#2c3037;
+      --accent:#34c98d;
+      --accent-soft:#17332a;
+      --warn:#e8a94a;
+      --warn-soft:#332816;
+      --danger:#ef6b6b;
+      --danger-soft:#361f1f;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font:15px/1.55 -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%;
+    padding:28px max(16px, env(safe-area-inset-left)) calc(56px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-right));
+  }
+  .wrap{max-width:520px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:18px;
+    box-shadow:var(--shadow);
+  }
+  h1{font-size:17px;margin:0;letter-spacing:.2px}
+  .sub{color:var(--muted);font-size:13px;margin:4px 0 0}
+  .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:0 4px}
+
+  /* 主按钮 */
+  .main{display:flex;flex-direction:column;align-items:center;gap:14px;padding:26px 18px}
+  .big{
+    width:186px;height:186px;
+    width:clamp(152px, 46vw, 186px);height:clamp(152px, 46vw, 186px);border-radius:50%;
+    border:none;cursor:pointer;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    color:#fff;background:linear-gradient(160deg,#2bb587,#0f9d68);
+    box-shadow:0 10px 26px rgba(15,157,104,.32), inset 0 -3px 0 rgba(0,0,0,.08);
+    transition:transform .12s ease, box-shadow .2s ease, background .25s ease;
+    -webkit-user-select:none;user-select:none;
+  }
+  .big:hover{transform:translateY(-2px)}
+  .big:active{transform:scale(.975)}
+  .big .k{font-size:clamp(18px, 5.4vw, 22px);font-weight:600}
+  .big .s{font-size:12.5px;opacity:.85;padding:0 10px;text-align:center}
+  .big .tick{font-size:clamp(22px, 6.5vw, 26px);line-height:1;color:var(--accent)}
+  .big.done{
+    background:linear-gradient(160deg,#eef1f4,#dfe4ea);
+    color:#23272c;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.7), 0 4px 14px rgba(16,24,40,.10);
+    cursor:default;
+  }
+  @media (prefers-color-scheme: dark){
+    .big.done{
+      background:linear-gradient(160deg,#2b3037,#23272d);
+      color:var(--text);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 4px 14px rgba(0,0,0,.35);
+    }
+  }
+  .big.done:hover{transform:none}
+  .big .time{font-size:clamp(24px, 7.5vw, 30px);font-weight:600;letter-spacing:.5px}
+  .big.pending-soon{background:linear-gradient(160deg,#f0a742,#e08a1e);box-shadow:0 10px 26px rgba(224,138,30,.30), inset 0 -3px 0 rgba(0,0,0,.08)}
+  .undo{
+    background:none;border:none;color:var(--muted);font:inherit;font-size:13px;
+    cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:2px 6px;
+  }
+  .undo:hover{color:var(--danger)}
+  .streak{font-size:13px;color:var(--muted)}
+  .streak b{color:var(--text);font-weight:600}
+
+  /* 统计 */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+  .stat .v{font-size:clamp(18px, 5.5vw, 22px);font-weight:600;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+
+  /* 日历 */
+  .calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .calhead .m{font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums}
+  .nav{display:flex;gap:6px}
+  .nav button{
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--card);
+    color:var(--text);cursor:pointer;font:inherit;line-height:1;display:grid;place-items:center;
+  }
+  .nav button:hover:not(:disabled){border-color:var(--muted)}
+  .nav button:disabled{opacity:.35;cursor:default}
+  .wk,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .wk{margin-bottom:6px}
+  .wk div{text-align:center;font-size:11.5px;color:var(--muted)}
+  .cell{
+    aspect-ratio:1/1;border-radius:9px;border:1px solid transparent;background:transparent;
+    display:flex;align-items:center;justify-content:center;position:relative;
+    font:inherit;font-size:13px;color:var(--text);font-variant-numeric:tabular-nums;
+    cursor:default;transition:background .15s ease,border-color .15s ease;
+    -webkit-user-select:none;user-select:none;touch-action:manipulation;padding:0;
+  }
+  .cell.empty{visibility:hidden}
+  .cell.future{color:#c3c8d0}
+  @media (prefers-color-scheme: dark){ .cell.future{color:#575d67} }
+  .cell.taken{background:var(--accent-soft);color:var(--accent);font-weight:600;box-shadow:inset 0 0 0 1px var(--accent-soft)}
+  .cell.taken::after{
+    content:"";position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%;background:var(--accent);
+  }
+  .cell.backfill::after{background:transparent;box-shadow:inset 0 0 0 1.5px var(--accent)}
+  .cell.missed{background:var(--danger-soft);color:var(--danger)}
+  .cell.today{box-shadow:inset 0 0 0 2px var(--text)}
+  .cell.today.taken{box-shadow:inset 0 0 0 2px var(--accent)}
+  .cell.clickable{cursor:pointer}
+  .cell.clickable:hover{background:var(--line)}
+  .cell.taken.clickable:hover,.cell.missed.clickable:hover{filter:brightness(.96)}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:12px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+  .dot.a{background:var(--accent)}
+  .dot.b{background:var(--card);box-shadow:inset 0 0 0 1.5px var(--accent)}
+  .dot.c{background:var(--danger)}
+  .hint{color:var(--muted);font-size:12px;margin-top:10px}
+
+  /* 提醒 / 数据 */
+  .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .row h2{font-size:14.5px;margin:0;flex:1}
+  .desc{color:var(--muted);font-size:12.5px;margin:8px 0 12px}
+  button.btn{
+    font:inherit;font-size:13.5px;padding:8px 14px;border-radius:10px;cursor:pointer;
+    border:1px solid var(--line);background:var(--card);color:var(--text);
+    min-height:38px;touch-action:manipulation;
+  }
+  button.btn:hover{border-color:var(--muted)}
+  button.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.btn.primary:hover{filter:brightness(1.05)}
+  button.btn.tiny{font-size:12px;padding:6px 10px;border-radius:8px}
+  button.btn.tiny{min-height:36px}
+  input[type=time]{
+    font:inherit;font-size:14px;padding:7px 10px;border-radius:10px;
+    border:1px solid var(--line);background:var(--card);color:var(--text);
+  }
+  .state{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7}
+  .state b{color:var(--text);font-weight:600}
+  .notice{
+    display:none;font-size:12.5px;border-radius:10px;padding:9px 12px;margin-top:12px;
+    background:var(--warn-soft);color:var(--warn);
+  }
+  .notice.show{display:block}
+  .notice.ok{background:var(--accent-soft);color:var(--accent)}
+  .saved{color:var(--accent)!important}
+  details.help{padding:0}
+  details.help summary{
+    cursor:pointer;padding:15px 18px;font-size:14.5px;font-weight:600;list-style:none;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  details.help summary::-webkit-details-marker{display:none}
+  details.help summary::after{content:"›";color:var(--muted);font-size:18px;transform:rotate(90deg);transition:transform .2s ease}
+  details.help[open] summary::after{transform:rotate(-90deg)}
+  details.help .body{padding:0 18px 18px;font-size:13.5px;color:var(--muted);line-height:1.75}
+  details.help .body b{color:var(--text);font-weight:600}
+  details.help .body p{margin:0 0 10px}
+  details.help .body p:last-child{margin-bottom:0}
+
+  /* ---------- 触屏设备 ---------- */
+  @media (hover:none){
+    .big:hover{transform:none}
+    .big:active{transform:scale(.97)}
+    button.btn:hover{border-color:var(--line)}
+    button.btn.primary:hover{border-color:var(--accent);filter:none}
+    button.btn:active{opacity:.65}
+    .nav button:hover:not(:disabled){border-color:var(--line)}
+    .cell.clickable:hover{background:transparent}
+    .cell.clickable:active{background:var(--line)}
+    .cell.taken.clickable:hover,.cell.missed.clickable:hover{filter:none}
+    .cell.taken.clickable:active,.cell.missed.clickable:active{filter:brightness(.93)}
+    .undo:hover{color:var(--muted)}
+    /* 触摸目标放大到 44px */
+    button.btn{min-height:44px}
+    button.btn.tiny{min-height:44px}
+    .nav button{width:40px;height:40px}
+    .undo{padding:8px 10px}
+    details.help summary{padding:16px 18px}
+  }
+
+  /* ---------- 手机竖屏 ---------- */
+  @media (max-width:480px){
+    body{padding-top:18px;font-size:15px;padding-bottom:calc(40px + env(safe-area-inset-bottom))}
+    .wrap{gap:11px}
+    .card{padding:16px;border-radius:14px}
+    .main{padding:20px 14px;gap:12px}
+    .stats{gap:6px}
+    .wk,.grid{gap:3px}
+    .cell{font-size:13px;border-radius:8px;min-height:34px}
+    .nav button{width:40px;height:40px}
+    .cell.taken::after{bottom:4px;width:4px;height:4px}
+    .calhead{margin-bottom:10px}
+    .legend{gap:10px;font-size:11.5px;margin-top:12px}
+    .hint,.desc{font-size:12.5px}
+    .state{font-size:12px}
+    details.help .body{font-size:14px;line-height:1.7}
+    /* 提醒设置：说明占满一行，控件并排撑满 */
+    .row{align-items:stretch}
+    .row h2{flex:1 1 100%;margin-bottom:2px}
+    .row button.btn{flex:1 1 auto}
+    input[type=time]{flex:1 1 auto;min-height:44px;font-size:16px}
+    /* 数据卡片的小按钮两列排布，方便点 */
+    .row button.btn.tiny{flex:1 1 44%;min-width:44%}
+  }
+
+  @media (max-width:360px){
+    body{padding-left:max(12px, env(safe-area-inset-left));padding-right:max(12px, env(safe-area-inset-right))}
+    .card{padding:14px}
+    .cell{font-size:12.5px;border-radius:7px}
+    .big .s{font-size:12px}
+  }
+
+  /* 横屏矮屏：不要把主按钮撑满 */
+  @media (max-height:520px) and (orientation:landscape){
+    .big{width:clamp(120px, 26vh, 150px);height:clamp(120px, 26vh, 150px)}
+    .main{padding:16px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <h1>吃药打卡</h1>
+      <p class="sub" id="todayLabel">—</p>
+    </div>
+  </div>
+
+  <section class="card main">
+    <button class="big" id="bigBtn" title="点击记录今天已吃药">
+      <span class="tick" id="bigIcon" aria-hidden="true"></span>
+      <span class="k" id="bigMain">吃药打卡</span>
+      <span class="s" id="bigSub">点一下记录</span>
+    </button>
+    <button class="undo" id="undoBtn" hidden>撤销今天的打卡</button>
+    <div class="streak" id="streakLine"></div>
+  </section>
+
+  <section class="card stats">
+    <div class="stat"><div class="v" id="stStreak">0</div><div class="l">连续天数</div></div>
+    <div class="stat"><div class="v" id="stMonth">0%</div><div class="l">本月完成</div></div>
+    <div class="stat"><div class="v" id="stBest">0</div><div class="l">最长连续</div></div>
+  </section>
+
+  <section class="card">
+    <div class="calhead">
+      <div class="m" id="monthLabel">—</div>
+      <div class="nav">
+        <button id="prevMonth" title="上个月" aria-label="上个月">‹</button>
+        <button id="nextMonth" title="下个月" aria-label="下个月">›</button>
+      </div>
+    </div>
+    <div class="wk"><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div></div>
+    <div class="grid" id="grid"></div>
+    <div class="legend">
+      <span><i class="dot a"></i>已吃药</span>
+      <span><i class="dot b"></i>补记</span>
+      <span><i class="dot c"></i>漏了一天</span>
+    </div>
+    <div class="hint" id="calHint">最近 3 天内的日期，点一下可以补记或取消。</div>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <h2>每天提醒</h2>
+      <input type="time" id="remindTime" value="08:00" aria-label="提醒时间">
+      <button class="btn primary" id="icsBtn">加入系统日历</button>
+    </div>
+    <p class="desc">会生成一个日历文件，双击导入「日历」App，之后每天到点提醒你吃药。想改时间，改完再点一次即可。</p>
+    <div class="notice" id="icsMsg"></div>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <h2>数据与备份</h2>
+      <button class="btn tiny" id="exportBtn">导出备份</button>
+      <button class="btn tiny" id="csvBtn">导出表格</button>
+      <button class="btn tiny" id="importBtn">导入备份</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn tiny" id="linkBtn" hidden>连接本地数据文件</button>
+      <span class="desc" id="linkHint" style="margin:0"></span>
+    </div>
+    <div class="state" id="dataState"></div>
+    <div class="notice" id="dataMsg"></div>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
+  </section>
+
+  <details class="card help">
+    <summary>使用说明</summary>
+    <div class="body">
+      <p><b>每天打卡</b>　吃完药，点一下绿色的大圆按钮就记录好了，时间会自动存下来。点错了下面有「撤销」。</p>
+      <p><b>忘记点了</b>　日历上最近 3 天的日期可以直接点，补记或取消。更早的日期会锁定，免得手滑改乱。</p>
+      <p><b>设置提醒</b>　选好时间，点「加入系统日历」，再打开生成的 吃药提醒.ics（电脑上在「下载」文件夹里双击，手机上在「文件」App 的下载项里点一下），系统会问你是否加入日历，点添加。之后每天到点就会提醒你。改时间只要重新生成一次，会更新同一条提醒，不会重复。</p>
+      <p><b>防止数据丢失</b>　数据默认存在这个浏览器里。最稳妥的做法是点「连接本地数据文件」，选一个位置（比如这个打卡文件夹），以后每次打卡都会自动写进那个文件。或者定期点「导出备份」。</p>
+      <p><b>换设备 / 换浏览器</b>　在新设备上打开这个网页，点「导入备份」，选择之前导出的 .json 文件即可。注意手机和电脑上记录是各自独立的，用「导出备份 / 导入备份」互通。</p>
+      <p><b>给医生看</b>　点「导出表格」，会得到一个 Excel 能打开的 CSV 文件，记录每天有没有按时吃药。</p>
+    </div>
+  </details>
+
+</div>
+
+<script>
+"use strict";
+
+/* ---------- 基础工具 ---------- */
+const pad2 = n => String(n).padStart(2, "0");
+const ymd = d => d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+const parseYmd = s => { const p = String(s).split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+const addDays = (d, n) => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; };
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const today = () => startOfDay(new Date());
+const todayStr = () => ymd(today());
+const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
+
+/* 设备判断：用于调整提示文案和保存方式 */
+const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const isTouch = () => isIOS() || (navigator.maxTouchPoints || 0) > 0;
+
+/* 允许补记的天数（含今天往前） */
+const BACKFILL_DAYS = 3;
+
+const STORE_KEY = "medcheckin.v1";
+const DEFAULT_STATE = { records: {}, settings: { remindTime: "08:00", icsSeq: 0 }, lastBackup: null };
+const blank = () => JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+/* ---------- 状态 ---------- */
+let state = load();
+let viewYear, viewMonth;   // 当前日历显示的月份
+let fileHandle = null;     // 绑定的本地数据文件
+let pendingHandle = null;  // 上次用过、等一次点击授权的文件
+let toastTimer = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return blank();
+    const obj = JSON.parse(raw);
+    return {
+      records: (obj && typeof obj.records === "object" && obj.records) || {},
+      settings: Object.assign({ remindTime: "08:00", icsSeq: 0 }, (obj && obj.settings) || {}),
+      lastBackup: (obj && obj.lastBackup) || null
+    };
+  } catch (e) {
+    return blank();
+  }
+}
+
+function persist() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+  scheduleFileWrite();
+}
+
+/* ---------- 统计 ---------- */
+function streakEndingAt(dateStr) {
+  let n = 0, d = dateStr;
+  while (state.records[d]) { n++; d = ymd(addDays(parseYmd(d), -1)); }
+  return n;
+}
+function currentStreak() {
+  const t = todayStr();
+  if (state.records[t]) return streakEndingAt(t);
+  return streakEndingAt(ymd(addDays(today(), -1)));
+}
+function bestStreak() {
+  const keys = Object.keys(state.records).sort();
+  let best = 0, run = 0, prev = null;
+  for (const k of keys) {
+    run = (prev && (parseYmd(k) - parseYmd(prev)) === 86400000) ? run + 1 : 1;
+    if (run > best) best = run;
+    prev = k;
+  }
+  return best;
+}
+function monthStats(y, m) {   // m: 0-11
+  const total = daysInMonth(y, m);
+  let elapsed, taken = 0;
+  const now = today();
+  if (now.getFullYear() === y && now.getMonth() === m) elapsed = now.getDate();
+  else if (new Date(y, m, 1) > now) elapsed = 0;
+  else elapsed = total;
+  for (let d = 1; d <= total; d++) if (state.records[ymd(new Date(y, m, d))]) taken++;
+  return { taken, elapsed, total };
+}
+
+/* ---------- 渲染 ---------- */
+function fmtTime(t) { return t; }
+
+function renderTop() {
+  const d = new Date();
+  document.getElementById("todayLabel").textContent =
+    d.getFullYear() + "年" + (d.getMonth() + 1) + "月" + d.getDate() + "日 星期" + WEEK[d.getDay()];
+}
+
+function renderMain() {
+  const t = todayStr();
+  const rec = state.records[t];
+  const big = document.getElementById("bigBtn");
+  const icon = document.getElementById("bigIcon");
+  const main = document.getElementById("bigMain");
+  const sub = document.getElementById("bigSub");
+  const undo = document.getElementById("undoBtn");
+
+  big.classList.remove("pending-soon");
+
+  if (rec) {
+    big.classList.add("done");
+    icon.textContent = "✓";
+    main.textContent = "今天已完成";
+    sub.textContent = (rec.backfill ? "补记 " : "打卡于 ") + fmtTime(rec.t);
+    undo.hidden = false;
+  } else {
+    big.classList.remove("done");
+    icon.textContent = "";
+    const now = new Date();
+    const [rh, rm] = state.settings.remindTime.split(":").map(Number);
+    const late = now.getHours() * 60 + now.getMinutes() > rh * 60 + rm;
+    big.style.background = "";
+    big.classList.toggle("pending-soon", late);
+    main.textContent = "吃药打卡";
+    sub.textContent = late ? "今天还没吃，点一下记录" : "点一下记录";
+    undo.hidden = true;
+  }
+}
+
+function renderStats() {
+  const cs = currentStreak();
+  document.getElementById("stStreak").textContent = cs;
+  const now = new Date();
+  const ms = monthStats(now.getFullYear(), now.getMonth());
+  document.getElementById("stMonth").textContent =
+    ms.elapsed === 0 ? "—" : Math.round(ms.taken / ms.elapsed * 100) + "%";
+  document.getElementById("stBest").textContent = bestStreak();
+  document.getElementById("streakLine").innerHTML = cs > 0
+    ? "已经连续打卡 <b>" + cs + "</b> 天，继续保持。"
+    : "今天开始，就是第 1 天。";
+}
+
+function renderCalendar() {
+  const grid = document.getElementById("grid");
+  const y = viewYear, m = viewMonth;
+  document.getElementById("monthLabel").textContent = y + "年" + (m + 1) + "月";
+
+  const now = today();
+  const nowMonth = now.getFullYear() === y && now.getMonth() === m;
+  document.getElementById("nextMonth").disabled = (y > now.getFullYear()) ||
+    (y === now.getFullYear() && m >= now.getMonth());
+
+  const first = new Date(y, m, 1);
+  const lead = (first.getDay() + 6) % 7;      // 周一为第一列
+  const total = daysInMonth(y, m);
+  const earliest = addDays(now, -(BACKFILL_DAYS - 1));
+
+  let html = "";
+  for (let i = 0; i < lead; i++) html += '<div class="cell empty"></div>';
+  for (let d = 1; d <= total; d++) {
+    const date = new Date(y, m, d);
+    const key = ymd(date);
+    const rec = state.records[key];
+    const cls = ["cell"];
+    if (date > now) cls.push("future");
+    else if (rec) { cls.push("taken"); if (rec.backfill) cls.push("backfill"); }
+    else if (date < now && nowMonth) cls.push("missed");
+    if (date.getTime() === now.getTime()) cls.push("today");
+
+    const canEdit = date <= now && date >= earliest;
+    if (canEdit) cls.push("clickable");
+
+    let title = key;
+    if (rec) title += "　已吃 " + rec.t + (rec.backfill ? "（补记）" : "");
+    else if (date <= now) title += "　未记录";
+    if (canEdit) title += "　· 点击" + (rec ? "取消" : "补记");
+    else if (date < earliest) title += "　· 只能补记最近 " + BACKFILL_DAYS + " 天";
+
+    html += '<button class="' + cls.join(" ") + '" data-date="' + key + '" title="' + title + '">' + d + "</button>";
+  }
+  grid.innerHTML = html;
+}
+
+function renderData() {
+  const el = document.getElementById("dataState");
+  const msg = document.getElementById("dataMsg");
+  const n = Object.keys(state.records).length;
+  const where = fileHandle
+    ? '数据已同时保存到本地文件 <b>' + escapeHtml(fileHandle.name) + "</b>"
+    : "数据保存在这台电脑（浏览器本地）";
+  const last = state.lastBackup
+    ? "上次备份：" + state.lastBackup.replace("T", " ").slice(0, 16)
+    : "还没有导出过备份";
+  el.innerHTML = where + "　·　共 <b>" + n + "</b> 天记录<br>" + last;
+
+  const need = !state.lastBackup ||
+    (Date.now() - new Date(state.lastBackup).getTime()) > 7 * 86400000;
+  el.classList.toggle("saved", !!fileHandle);
+  if (fileHandle) {
+    /* 已绑定本地文件，不需要再提醒备份 */
+  } else if (need && n > 0) {
+    showMsg("dataMsg", "建议点一下「导出备份」，把数据存成文件，换电脑或清浏览器缓存都不怕丢。", false);
+  } else if (!msg.classList.contains("ok")) {
+    msg.classList.remove("show");
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function renderAll() {
+  renderTop(); renderMain(); renderStats(); renderCalendar(); renderData();
+}
+
+/* ---------- 打卡动作 ---------- */
+function toggle(dateStr) {
+  if (state.records[dateStr]) {
+    delete state.records[dateStr];
+  } else {
+    const now = new Date();
+    const isToday = dateStr === todayStr();
+    state.records[dateStr] = {
+      t: isToday ? pad2(now.getHours()) + ":" + pad2(now.getMinutes())
+                 : state.settings.remindTime,
+      backfill: !isToday
+    };
+  }
+  persist(); renderAll();
+}
+
+/* ---------- 日历导出 ---------- */
+function foldIcs(line) {
+  if (line.length <= 70) return line;
+  let out = line.slice(0, 70), rest = line.slice(70);
+  while (rest.length) { out += "\r\n " + rest.slice(0, 69); rest = rest.slice(69); }
+  return out;
+}
+function buildIcs(timeStr) {
+  const [h, mi] = timeStr.split(":").map(Number);
+  const now = new Date();
+  let start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, mi, 0);
+  if (start <= now) start = addDays(start, 1);
+  const ds = start.getFullYear() + pad2(start.getMonth() + 1) + pad2(start.getDate()) +
+    "T" + pad2(h) + pad2(mi) + "00";
+  const stamp = now.getUTCFullYear() + pad2(now.getUTCMonth() + 1) + pad2(now.getUTCDate()) +
+    "T" + pad2(now.getUTCHours()) + pad2(now.getUTCMinutes()) + pad2(now.getUTCSeconds()) + "Z";
+  let link = "";
+  try { if (location.protocol === "file:") link = "\\n打卡： " + encodeURI(location.href); } catch (e) {}
+  const desc = ("每天提醒吃药。" + link).replace(/\r?\n/g, "\\n");
+
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//medcheckin//CN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    "UID:medcheckin-daily@local",
+    "DTSTAMP:" + stamp,
+    "SEQUENCE:" + (Number(state.settings.icsSeq) || 0),
+    "DTSTART:" + ds,
+    "DURATION:PT10M",
+    "RRULE:FREQ=DAILY",
+    "SUMMARY:吃药",
+    "DESCRIPTION:" + desc,
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:该吃药了",
+    "TRIGGER:PT0M",
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR"
+  ];
+  return lines.map(foldIcs).join("\r\n") + "\r\n";
+}
+/* 返回 "shared" | "saved" | "cancelled" */
+async function download(name, text, mime, useShare) {
+  const type = (mime || "text/plain") + ";charset=utf-8";
+  // iPhone / iPad 上优先弹系统分享面板，方便直接存到「文件」或 AirDrop 发出去
+  if (useShare !== false && isIOS() && navigator.canShare && /json|csv/.test(mime || "")) {
+    try {
+      const file = new File([text], name, { type });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file] });
+        return "shared";
+      }
+    } catch (e) {
+      if (e && e.name === "AbortError") return "cancelled";
+    }
+  }
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return "saved";
+}
+
+/* ---------- 本地文件绑定 ---------- */
+const IDB_NAME = "medcheckin-fs", IDB_STORE = "handles";
+function idb() {
+  return new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open(IDB_NAME, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  });
+}
+async function idbSet(key, val) {
+  try {
+    const db = await idb();
+    await new Promise((res, rej) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put(val, key);
+      tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+    });
+    db.close();
+  } catch (e) {}
+}
+async function idbGet(key) {
+  try {
+    const db = await idb();
+    const v = await new Promise((res, rej) => {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const rq = tx.objectStore(IDB_STORE).get(key);
+      rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
+    });
+    db.close();
+    return v;
+  } catch (e) { return null; }
+}
+
+let writeTimer = null;
+function scheduleFileWrite() {
+  if (!fileHandle) return;
+  clearTimeout(writeTimer);
+  writeTimer = setTimeout(() => { writeFile(); }, 250);
+}
+async function writeFile() {
+  if (!fileHandle) return;
+  try {
+    const w = await fileHandle.createWritable();
+    await w.write(JSON.stringify({ app: "吃药打卡", savedAt: new Date().toISOString(), records: state.records, settings: state.settings }, null, 2));
+    await w.close();
+    const el = document.getElementById("dataMsg");
+    showMsg("dataMsg", "已保存到 " + fileHandle.name + "（" + new Date().toTimeString().slice(0, 5) + "）", true, 2200);
+  } catch (e) {
+    fileHandle = null;
+    renderData();
+    showMsg("dataMsg", "写入本地文件失败，请重新连接。", false);
+  }
+}
+async function connectFile() {
+  if (fileHandle) {
+    await writeFile();
+    showMsg("dataMsg", "已写入 " + fileHandle.name, true, 2200);
+    return;
+  }
+  // 上次用过的文件，只要点一下就能恢复写入，不用重新选
+  if (pendingHandle) {
+    try {
+      const p = await pendingHandle.requestPermission({ mode: "readwrite" });
+      if (p === "granted") {
+        const h = pendingHandle;
+        pendingHandle = null;
+        await bindFile(h);
+        return;
+      }
+    } catch (e) {}
+    pendingHandle = null;
+  }
+  if (!window.showSaveFilePicker) return;
+  try {
+    const h = await window.showSaveFilePicker({
+      suggestedName: "吃药打卡数据.json",
+      types: [{ description: "打卡数据", accept: { "application/json": [".json"] } }]
+    });
+    await bindFile(h);
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    showMsg("dataMsg", "连接失败：" + (e && e.message ? e.message : e), false);
+  }
+}
+async function bindFile(h) {
+  fileHandle = h;
+  await idbSet("datafile", h);
+  await mergeExistingFile(h);
+  await writeFile();
+  renderData();
+  showMsg("dataMsg", "已连接「" + h.name + "」，以后每次打卡都会自动写进去。", true, 3500);
+}
+async function mergeExistingFile(handle) {
+  try {
+    const f = await handle.getFile();
+    const txt = await f.text();
+    if (!txt.trim()) return;
+    const obj = JSON.parse(txt);
+    const recs = (obj && obj.records) || obj || {};
+    let added = 0;
+    for (const k in recs) {
+      if (!state.records[k]) { state.records[k] = recs[k]; added++; }
+    }
+    if (added) { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+  } catch (e) {}
+}
+async function restoreFileHandle() {
+  if (!window.showSaveFilePicker || !window.indexedDB) return;
+  const h = await idbGet("datafile");
+  if (!h) return;
+  try {
+    const p = await h.queryPermission({ mode: "readwrite" });
+    if (p === "granted") {
+      await bindFile(h);
+      return;
+    }
+  } catch (e) {}
+  // 需要用户点一下才允许继续写
+  pendingHandle = h;
+  const b = document.getElementById("linkBtn");
+  b.hidden = false;
+  b.textContent = "继续写入「" + h.name + "」";
+  b.classList.add("primary");
+  document.getElementById("linkHint").textContent = "上次用的数据文件还在，点一下继续写进去。";
+}
+
+/* ---------- 提示条 ---------- */
+function showMsg(id, text, ok, ms) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.classList.add("show");
+  el.classList.toggle("ok", !!ok);
+  clearTimeout(toastTimer);
+  if (ms) toastTimer = setTimeout(() => el.classList.remove("show"), ms);
+}
+
+/* ---------- 事件绑定 ---------- */
+document.getElementById("bigBtn").addEventListener("click", () => {
+  if (state.records[todayStr()]) return;    // 已完成，需用撤销
+  toggle(todayStr());
+});
+document.getElementById("undoBtn").addEventListener("click", () => {
+  toggle(todayStr());
+});
+document.getElementById("grid").addEventListener("click", e => {
+  const btn = e.target.closest("button.cell.clickable");
+  if (btn) toggle(btn.dataset.date);
+});
+document.getElementById("prevMonth").addEventListener("click", () => {
+  viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+  renderCalendar();
+});
+document.getElementById("nextMonth").addEventListener("click", () => {
+  viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  renderCalendar();
+});
+document.getElementById("icsBtn").addEventListener("click", () => {
+  const t = document.getElementById("remindTime").value || "08:00";
+  state.settings.remindTime = t;
+  state.settings.icsSeq = (Number(state.settings.icsSeq) || 0) + 1;
+  persist(); renderAll();
+  download("吃药提醒.ics", buildIcs(t), "text/calendar");
+  showMsg("icsMsg", isIOS()
+    ? "已生成「吃药提醒.ics」，在「文件」App 的下载项里点它，就能加到 iPhone 日历。改完时间重新生成一次即可，会更新同一条提醒。"
+    : "已生成「吃药提醒.ics」，去「下载」文件夹双击它，系统会问你是否加入日历，点添加即可。以后再改时间重新生成，会更新同一条提醒，不会重复。",
+    true, 9000);
+});
+document.getElementById("remindTime").addEventListener("change", () => {
+  state.settings.remindTime = document.getElementById("remindTime").value || "08:00";
+  persist(); renderAll();
+});
+document.getElementById("exportBtn").addEventListener("click", async () => {
+  const d = todayStr();
+  const how = await download("吃药打卡-备份-" + d + ".json", JSON.stringify({
+    app: "吃药打卡", exportedAt: new Date().toISOString(),
+    records: state.records, settings: state.settings
+  }, null, 2), "application/json");
+  if (how === "cancelled") return;
+  state.lastBackup = new Date().toISOString();
+  persist(); renderData();
+  showMsg("dataMsg", how === "shared"
+    ? "备份已发出，存到 iCloud 云盘或发给自己都行。"
+    : (isIOS() ? "备份已存到「文件」App，建议丢进 iCloud 云盘。" : "备份已导出到「下载」文件夹，建议放到 iCloud 或这个打卡文件夹里。"),
+    true, 6000);
+});
+document.getElementById("csvBtn").addEventListener("click", () => {
+  const keys = Object.keys(state.records).sort();
+  let csv = "日期,是否吃药,时间,补记\n";
+  for (const k of keys) {
+    const r = state.records[k];
+    csv += k + ",是," + r.t + "," + (r.backfill ? "补记" : "") + "\n";
+  }
+  download("吃药打卡记录-" + todayStr() + ".csv", "\ufeff" + csv, "text/csv");
+});
+document.getElementById("importBtn").addEventListener("click", () => {
+  document.getElementById("importFile").click();
+});
+document.getElementById("importFile").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const obj = JSON.parse(rd.result);
+      const recs = (obj && obj.records) || obj;
+      if (!recs || typeof recs !== "object") throw new Error("文件格式不对");
+      let added = 0, kept = 0;
+      for (const k in recs) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) continue;
+        if (!state.records[k]) { state.records[k] = recs[k]; added++; } else kept++;
+      }
+      persist(); renderAll();
+      showMsg("dataMsg", "导入完成：新增 " + added + " 天" + (kept ? "，已有 " + kept + " 天保持不变" : "") + "。", true, 6000);
+    } catch (err) {
+      showMsg("dataMsg", "导入失败：" + err.message, false);
+    }
+  };
+  rd.readAsText(f);
+  e.target.value = "";
+});
+document.getElementById("linkBtn").addEventListener("click", connectFile);
+
+/* ---------- 启动 ---------- */
+(function init() {
+  const now = new Date();
+  viewYear = now.getFullYear();
+  viewMonth = now.getMonth();
+  document.getElementById("remindTime").value = state.settings.remindTime || "08:00";
+
+  if (window.showSaveFilePicker) {
+    const b = document.getElementById("linkBtn");
+    b.hidden = false;
+    b.textContent = "连接本地数据文件";
+    document.getElementById("linkHint").textContent = "选一个文件后，打卡会自动写进去，多一份保障。";
+  } else if (isIOS()) {
+    document.getElementById("linkHint").textContent = "手机浏览器不能直接写文件。点「导出备份」会存到「文件」App，换设备时用「导入备份」读回来。";
+  } else {
+    document.getElementById("linkHint").textContent = "换用 Chrome 打开，可以额外把数据直接写成本地文件。";
+  }
+
+  renderAll();
+  restoreFileHandle();
+
+  // 放到网上（http/https）时注册离线缓存；本地双击打开不需要
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+
+  // 跨天自动刷新
+  setInterval(() => {
+    if (document.getElementById("todayLabel").dataset.d !== todayStr()) renderAll();
+    document.getElementById("todayLabel").dataset.d = todayStr();
+  }, 60000);
+
+  document.documentElement.setAttribute("data-app-ready", "1");
+})();
+</script>
+</body>
+</html>
